@@ -1,0 +1,6 @@
+{
+  "name": "LARK - LDAP Administration & Resource Kit",
+  "description": "Crisp, modern LDAP directory management console for browsing directory trees, managing users, groups, and organizational units with role-based access control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
