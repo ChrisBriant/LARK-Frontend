@@ -1,40 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { LDAPOUCreate, LDAPOU } from '../../types/ldap';
-import { FolderPlus, X, Folder } from 'lucide-react';
+import React, { useState } from 'react';
+import { FolderPlus, X } from 'lucide-react';
 
-interface OUModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: LDAPOUCreate) => Promise<void>;
-  defaultParentDn?: string;
-  allOus?: LDAPOU[];
-  baseDn?: string;
-}
-
-export const OUModal: React.FC<OUModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  defaultParentDn,
-  allOus = [],
-  baseDn = 'dc=neuropunk',
-}) => {
+export default function OUModal({ isOpen, onClose, onSubmit, allOus = [], baseDn = 'dc=neuropunk' }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [parentDn, setParentDn] = useState(defaultParentDn || baseDn);
+  const [parentDn, setParentDn] = useState(baseDn);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setName('');
-    setDescription('');
-    setParentDn(defaultParentDn || baseDn);
-    setError(null);
-  }, [isOpen, defaultParentDn, baseDn]);
+  const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('OU name is required');
@@ -50,9 +26,11 @@ export const OUModal: React.FC<OUModalProps> = ({
         parent_dn: parentDn.trim() || null,
         object_classes: ['top', 'organizationalUnit'],
       });
+      setName('');
+      setDescription('');
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create organizational unit');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to create OU');
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +38,7 @@ export const OUModal: React.FC<OUModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5 text-slate-900">
             <FolderPlus className="w-5 h-5 text-amber-500" />
@@ -72,7 +50,7 @@ export const OUModal: React.FC<OUModalProps> = ({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-700">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
             {error}
           </div>
         )}
@@ -87,7 +65,7 @@ export const OUModal: React.FC<OUModalProps> = ({
               onChange={(e) => setParentDn(e.target.value)}
               className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
             >
-              <option value={baseDn}>{baseDn} (Root Base)</option>
+              <option value={baseDn}>{baseDn} (Root)</option>
               {allOus.map((ou) => (
                 <option key={ou.dn} value={ou.dn}>
                   {ou.ou} ({ou.dn})
@@ -105,7 +83,7 @@ export const OUModal: React.FC<OUModalProps> = ({
               required
               value={name}
               onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-              placeholder="e.g. Contractors, Staging, Finance"
+              placeholder="e.g. Operations, Contractors"
               className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
             />
           </div>
@@ -118,7 +96,7 @@ export const OUModal: React.FC<OUModalProps> = ({
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. External Contractor Accounts"
+              placeholder="e.g. Operational Engineering Division"
               className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
             />
           </div>
@@ -139,7 +117,7 @@ export const OUModal: React.FC<OUModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-sm disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-xs disabled:opacity-50"
             >
               {submitting ? 'Creating...' : 'Create OU'}
             </button>
@@ -148,4 +126,4 @@ export const OUModal: React.FC<OUModalProps> = ({
       </div>
     </div>
   );
-};
+}

@@ -1,33 +1,16 @@
 import React, { useState } from 'react';
-import { LDAPOU } from '../types/ldap';
-import { ArrowRightLeft, X, Folder, Layers } from 'lucide-react';
+import { ArrowRightLeft, X, Folder } from 'lucide-react';
 
-interface MoveObjectModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  currentDn: string;
-  objectName: string;
-  allOus: LDAPOU[];
-  onConfirmMove: (currentDn: string, newParentDn: string) => Promise<void>;
-}
-
-export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
-  isOpen,
-  onClose,
-  currentDn,
-  objectName,
-  allOus = [],
-  onConfirmMove,
-}) => {
+export default function MoveModal({ isOpen, onClose, currentDn, objectName, allOus = [], onConfirmMove }) {
   const [selectedParentDn, setSelectedParentDn] = useState(
     allOus.length > 0 ? allOus[0].dn : 'ou=People,dc=neuropunk'
   );
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
-  const handleMove = async (e: React.FormEvent) => {
+  const handleMove = async (e) => {
     e.preventDefault();
     if (!selectedParentDn) {
       setError('Please select a target destination OU');
@@ -39,8 +22,8 @@ export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
     try {
       await onConfirmMove(currentDn, selectedParentDn);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to move object');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to move object');
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +31,7 @@ export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5 text-slate-900">
             <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
@@ -60,7 +43,7 @@ export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-700">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
             {error}
           </div>
         )}
@@ -78,9 +61,9 @@ export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
 
           <div>
             <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-              Select Target Destination OU (new_parent_dn)
+              Select Target Destination OU
             </label>
-            <div className="space-y-1.5 max-h-56 overflow-y-auto border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+            <div className="space-y-1.5 max-h-56 overflow-y-auto border border-slate-200 rounded-xl p-2 bg-slate-50">
               {allOus.map((ou) => {
                 const isSelected = selectedParentDn === ou.dn;
                 return (
@@ -118,13 +101,13 @@ export const MoveObjectModal: React.FC<MoveObjectModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-sm disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-xs disabled:opacity-50"
             >
-              {submitting ? 'Moving Object...' : 'Execute Move'}
+              {submitting ? 'Moving...' : 'Execute Move'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-};
+}

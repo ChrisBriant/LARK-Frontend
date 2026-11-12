@@ -1,65 +1,48 @@
 import React, { useState } from 'react';
-import { LDAPGroup, LDAPUser } from '../../types/ldap';
-import { Users, X, UserPlus, Trash2, Search, Plus } from 'lucide-react';
+import { Users, X, Trash2, Search, Plus } from 'lucide-react';
 
-interface ManageMembersModalProps {
-  isOpen: boolean;
-  group: LDAPGroup | null;
-  onClose: () => void;
-  allUsers: LDAPUser[];
-  onAddMember: (groupDn: string, userDn: string) => Promise<void>;
-  onRemoveMember: (groupDn: string, userDn: string) => Promise<void>;
-}
-
-export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
-  isOpen,
-  group,
-  onClose,
-  allUsers = [],
-  onAddMember,
-  onRemoveMember,
-}) => {
+export default function MembersModal({ isOpen, group, onClose, allUsers = [], onAddMember, onRemoveMember }) {
   const [searchUser, setSearchUser] = useState('');
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState(null);
+  const [error, setError] = useState(null);
 
   if (!isOpen || !group) return null;
 
   const currentMembers = group.members || [];
 
-  // Filter users not yet in this group
   const nonMembers = allUsers.filter((u) => {
     const userDn = u.dn || `uid=${u.uid},ou=People,dc=neuropunk`;
-    const isMember = currentMembers.includes(userDn) || currentMembers.some((m) => m.includes(`uid=${u.uid},`) || m === u.uid);
+    const isMember =
+      currentMembers.includes(userDn) || currentMembers.some((m) => m.includes(`uid=${u.uid},`) || m === u.uid);
     if (isMember) return false;
     if (!searchUser) return true;
     return (
-      u.cn.toLowerCase().includes(searchUser.toLowerCase()) ||
-      u.uid.toLowerCase().includes(searchUser.toLowerCase()) ||
-      u.mail.toLowerCase().includes(searchUser.toLowerCase())
+      u.cn?.toLowerCase().includes(searchUser.toLowerCase()) ||
+      u.uid?.toLowerCase().includes(searchUser.toLowerCase()) ||
+      u.mail?.toLowerCase().includes(searchUser.toLowerCase())
     );
   });
 
-  const handleAdd = async (userDn: string) => {
+  const handleAdd = async (userDn) => {
     setLoadingAction(`add-${userDn}`);
     setError(null);
     try {
       await onAddMember(group.dn, userDn);
       setSearchUser('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to add member');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to add member');
     } finally {
       setLoadingAction(null);
     }
   };
 
-  const handleRemove = async (userDn: string) => {
+  const handleRemove = async (userDn) => {
     setLoadingAction(`remove-${userDn}`);
     setError(null);
     try {
       await onRemoveMember(group.dn, userDn);
-    } catch (err: any) {
-      setError(err.message || 'Failed to remove member');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to remove member');
     } finally {
       setLoadingAction(null);
     }
@@ -67,7 +50,7 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <Users className="w-5 h-5 text-emerald-600" />
@@ -82,13 +65,12 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-700">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
             {error}
           </div>
         )}
 
         <div className="p-6 space-y-5">
-          {/* Add Member Section */}
           <div>
             <label className="text-xs font-semibold text-slate-700 block mb-1.5">
               Add User to Group
@@ -143,7 +125,6 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
             )}
           </div>
 
-          {/* Current Members List */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-700">
@@ -154,15 +135,13 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
             <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50/50">
               {currentMembers.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400">
-                  No members currently enrolled in this group.
+                  No members currently in this group.
                 </div>
               ) : (
                 currentMembers.map((memberDn) => {
                   const matchingUser = allUsers.find(
                     (u) => u.dn === memberDn || memberDn.includes(`uid=${u.uid},`) || memberDn === u.uid
                   );
-                  const isProcessing = loadingAction === `remove-${memberDn}`;
-
                   return (
                     <div
                       key={memberDn}
@@ -211,4 +190,4 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({
       </div>
     </div>
   );
-};
+}

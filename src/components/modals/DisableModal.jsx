@@ -1,22 +1,9 @@
 import React, { useState } from 'react';
-import { LDAPUser } from '../../types/ldap';
 import { ShieldAlert, X } from 'lucide-react';
 
-interface DisableUserModalProps {
-  isOpen: boolean;
-  user: LDAPUser | null;
-  onClose: () => void;
-  onConfirm: (uid: string) => Promise<void>;
-}
-
-export const DisableUserModal: React.FC<DisableUserModalProps> = ({
-  isOpen,
-  user,
-  onClose,
-  onConfirm,
-}) => {
+export default function DisableModal({ isOpen, user, onClose, onConfirm }) {
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   if (!isOpen || !user) return null;
 
@@ -26,8 +13,8 @@ export const DisableUserModal: React.FC<DisableUserModalProps> = ({
     try {
       await onConfirm(user.uid);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to disable user');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to disable user');
     } finally {
       setSubmitting(false);
     }
@@ -35,7 +22,7 @@ export const DisableUserModal: React.FC<DisableUserModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5 text-amber-600">
             <ShieldAlert className="w-5 h-5" />
@@ -47,17 +34,17 @@ export const DisableUserModal: React.FC<DisableUserModalProps> = ({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-700">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
             {error}
           </div>
         )}
 
         <div className="p-6 space-y-4">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Disabling <strong className="text-slate-900">{user.cn}</strong> (<span className="font-mono">{user.uid}</span>) will block authentication to all directory-integrated services.
+            Disabling <strong className="text-slate-900">{user.cn}</strong> (<span className="font-mono">{user.uid}</span>) will block authentication to all directory services.
           </p>
 
-          <div className="p-3 bg-amber-50/50 border border-amber-200/60 rounded-xl text-xs text-amber-900">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
             This issues an LDAP account lock/disable mutation on the backend server.
           </div>
 
@@ -74,13 +61,13 @@ export const DisableUserModal: React.FC<DisableUserModalProps> = ({
               type="button"
               onClick={handleDisable}
               disabled={submitting}
-              className="px-4 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition shadow-sm disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition shadow-xs disabled:opacity-50"
             >
-              {submitting ? 'Disabling...' : 'Confirm Disable Account'}
+              {submitting ? 'Disabling...' : 'Confirm Disable'}
             </button>
           </div>
         </div>
       </div>
     </div>
   );
-};
+}

@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { LDAPUser, LDAPUserCreate, LDAPUserUpdate, LDAPOU } from '../../types/ldap';
-import { X, User, Mail, Building, Briefcase, KeyRound } from 'lucide-react';
+import { X } from 'lucide-react';
 
-interface UserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: LDAPUserCreate | { uid: string; updates: LDAPUserUpdate }) => Promise<void>;
-  editUser?: LDAPUser | null;
-  defaultParentDn?: string;
-  allOus?: LDAPOU[];
-}
-
-export const UserModal: React.FC<UserModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  editUser,
-  defaultParentDn = 'ou=People,dc=neuropunk',
-  allOus = [],
-}) => {
+export default function UserModal({ isOpen, onClose, onSubmit, editUser, allOus = [] }) {
   const isEditing = Boolean(editUser);
 
   const [uid, setUid] = useState('');
@@ -28,13 +11,13 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [mail, setMail] = useState('');
   const [department, setDepartment] = useState('');
   const [title, setTitle] = useState('');
-  const [selectedParentDn, setSelectedParentDn] = useState(defaultParentDn);
+  const [selectedParentDn, setSelectedParentDn] = useState('ou=People,dc=neuropunk');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (editUser) {
-      setUid(editUser.uid);
+      setUid(editUser.uid || '');
       setGivenName(editUser.given_name || '');
       setSn(editUser.sn || '');
       setCn(editUser.cn || '');
@@ -49,13 +32,14 @@ export const UserModal: React.FC<UserModalProps> = ({
       setMail('');
       setDepartment('');
       setTitle('');
-      setSelectedParentDn(defaultParentDn);
+      if (allOus.length > 0) {
+        setSelectedParentDn(allOus[0].dn);
+      }
     }
     setError(null);
-  }, [editUser, defaultParentDn, isOpen]);
+  }, [editUser, isOpen, allOus]);
 
-  // Automatically update CN as Given Name and Surname change if user hasn't overridden
-  const handleGivenNameChange = (val: string) => {
+  const handleGivenNameChange = (val) => {
     setGivenName(val);
     if (!isEditing) {
       setCn(`${val} ${sn}`.trim());
@@ -65,7 +49,7 @@ export const UserModal: React.FC<UserModalProps> = ({
     }
   };
 
-  const handleSnChange = (val: string) => {
+  const handleSnChange = (val) => {
     setSn(val);
     if (!isEditing) {
       setCn(`${givenName} ${val}`.trim());
@@ -75,7 +59,7 @@ export const UserModal: React.FC<UserModalProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
@@ -90,7 +74,7 @@ export const UserModal: React.FC<UserModalProps> = ({
 
     setSubmitting(true);
     try {
-      if (isEditing && editUser) {
+      if (isEditing) {
         await onSubmit({
           uid: editUser.uid,
           updates: {
@@ -117,8 +101,8 @@ export const UserModal: React.FC<UserModalProps> = ({
         });
       }
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Operation failed');
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Operation failed');
     } finally {
       setSubmitting(false);
     }
@@ -128,28 +112,23 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <h3 className="text-base font-bold text-slate-900">
               {isEditing ? `Edit User: ${editUser?.cn}` : 'Create New LDAP User'}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {isEditing
-                ? 'Update directory attributes for this account'
-                : 'Provision a new inetOrgPerson in the directory tree'}
+              {isEditing ? 'Update directory attributes' : 'Provision a new user in the directory'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-          >
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200/80 rounded-xl text-xs text-rose-700">
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
             {error}
           </div>
         )}
@@ -189,7 +168,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 disabled={isEditing}
                 value={uid}
                 onChange={(e) => setUid(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
-                placeholder="e.g. bsmith"
+                placeholder="e.g. jdoe"
                 className="w-full text-xs font-mono bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -219,7 +198,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 required
                 value={givenName}
                 onChange={(e) => handleGivenNameChange(e.target.value)}
-                placeholder="e.g. Barbara"
+                placeholder="e.g. John"
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -233,7 +212,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 required
                 value={sn}
                 onChange={(e) => handleSnChange(e.target.value)}
-                placeholder="e.g. Smith"
+                placeholder="e.g. Doe"
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -248,7 +227,7 @@ export const UserModal: React.FC<UserModalProps> = ({
               required
               value={cn}
               onChange={(e) => setCn(e.target.value)}
-              placeholder="e.g. Barbara Smith"
+              placeholder="e.g. John Doe"
               className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
             />
           </div>
@@ -262,7 +241,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 type="text"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                placeholder="e.g. Engineering, IT"
+                placeholder="e.g. Engineering"
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -275,7 +254,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Lead Engineer"
+                placeholder="e.g. Senior Developer"
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -293,7 +272,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-sm disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-xs disabled:opacity-50"
             >
               {submitting ? 'Saving...' : isEditing ? 'Update User' : 'Create User'}
             </button>
@@ -302,4 +281,4 @@ export const UserModal: React.FC<UserModalProps> = ({
       </div>
     </div>
   );
-};
+}
